@@ -36,18 +36,31 @@ class BookingPage:
         """
         Opens the 'From' airport selector modal, fills in the airport code,
         and selects the correct option from the dropdown list (e.g., 'ATL Atlanta, GA').
+        Uses broad match for compatibility with headless Chrome.
         """
-        link = self.page.get_by_role("link", name="From Departure Airport or")  # Adding a wait for the "From" element before clicking to fix headless Chrome execution
-        link.wait_for(state="visible", timeout=10000)
-        link.click()
+        print("\nDEBUG: Visible <a> tags before selecting 'From':")
+        for link in self.page.locator("a").all():
+            try:
+                if link.is_visible():
+                    print("-", link.inner_text())
+            except:
+                continue
 
+        # Try to match 'From' selector in broader way (headless-safe)
+        from_links = self.page.locator("a").filter(has_text="From")
+        from_link = from_links.first
+
+        from_link.wait_for(state="visible", timeout=10000)
+        from_link.click()
+
+        # Fill in the textbox
         textbox = self.page.get_by_role("textbox", name="Origin City or Airport")
         textbox.wait_for()
         textbox.fill(airport_code)
 
         self.page.get_by_role("link", name=airport_full_name).click()
-
         self.page.wait_for_timeout(1000)
+
 
     
     def fill_depart_and_return_dates(self, depart: str, return_: str):

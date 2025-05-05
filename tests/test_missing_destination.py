@@ -10,13 +10,14 @@ Test Scenario:
 
 Tools:
 - Python
+- Chat GPT / Google Gemini
 - Playwright (sync API)
 - Pytest (with HTML reporting)
 
 Data-driven from: testdata/testdata.csv
 
 Author: Sean Tabrizi
-Date: April 21, 2025
+Date: May 05, 2025
 """
 
 
@@ -52,12 +53,17 @@ def test_missing_destination_field():
     with sync_playwright() as p:
         
         #NOTE: Select browser and execution type Headed/Headless for CI/CD 
-        browser = p.chromium.launch(headless=True)  # set to True to run in headed mode
-        # browser = p.firefox.launch(headless=False)   # set to True to run in headed mode
+        # browser = p.chromium.launch(headless=False)  # set to True to run in headed mode
+        browser = p.firefox.launch(headless=False)   # set to True to run in headed mode
+        # browser = p.chromium.launch(channel="msedge", headless=False)
 
-        # to help view with Chrome headless just in case.
+
+        # to help view with Chrome headless just in case. #NOTE: However Headless Chrome not allowed on Delta
         context = browser.new_context(viewport={"width": 1280, "height": 1024})
         # context = browser.new_context()
+
+
+
 
         page = context.new_page()
 
@@ -65,6 +71,9 @@ def test_missing_destination_field():
         page.goto(URL)
         page.wait_for_timeout(2000)  # 2-second wait
 
+        #NOTE: Dump the HTML content to a file for debugging
+        with open("page_source.html", "w", encoding="utf-8") as f:
+            f.write(page.content())
 
         # Initialize BookingPage with the Playwright page object
         booking = BookingPage(page)
