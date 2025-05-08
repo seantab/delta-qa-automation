@@ -28,11 +28,41 @@ from pages.booking_page import BookingPage
 
 # Utility function to load a single row of test data from CSV
 # This allows the test to run dynamically using externalized data
-def load_test_data_csv(filepath):
-    with open(filepath, newline='') as csvfile:
-        reader = csv.DictReader(csvfile)
-        for row in reader:
-            return row["url"], row["from_airport"], row["from_full_name"], row["depart_date"], row["return_date"]
+# def load_test_data_csv(filepath):
+#     with open(filepath, newline='') as csvfile:
+#         reader = csv.DictReader(csvfile)
+#         for row in reader:
+#             return row["url"], row["from_airport"], row["from_full_name"], row["depart_date"], row["return_date"]
+import pandas as pd
+
+def load_test_data_xlsx(filepath):
+    # Load the Excel file into a pandas DataFrame using openpyxl as the engine
+    df = pd.read_excel(filepath, engine="openpyxl")
+
+    # Extract the first row of test data (assuming only one test case per run)
+    row = df.iloc[0]
+
+    # Read and normalize the 'Browser' field: 
+    # Convert to string, trim whitespace, capitalize (e.g., "chrome" → "Chrome"), default to "Firefox" if blank or NaN
+    browser = str(row.get("Browser", "")).strip().capitalize() or "Firefox"
+
+    # Read and normalize the 'CICD' field:
+    # Convert to string, trim whitespace, capitalize (e.g., "yes" → "Yes"), default to "No" if blank or NaN
+    cicd = str(row.get("CICD", "")).strip().capitalize() or "No"
+
+    # Return all test data fields as a tuple
+    return (
+        row["url"],
+        row["from_airport"],
+        row["from_full_name"],
+        row["depart_date"],
+        row["return_date"],
+        browser,
+        cicd
+    )
+
+
+
 
 # Marking this test as a negative test case, focusing on invalid input validation
 @pytest.mark.negative
@@ -45,7 +75,8 @@ def test_missing_destination_field():
     """
 
     # Load test data values from CSV
-    URL, FROM_AIRPORT, FROM_FULL_NAME, DEPART_DATE, RETURN_DATE = load_test_data_csv("testdata/testdata.csv")
+    # URL, FROM_AIRPORT, FROM_FULL_NAME, DEPART_DATE, RETURN_DATE = load_test_data_csv("testdata/testdata.csv")
+    URL, FROM_AIRPORT, FROM_FULL_NAME, DEPART_DATE, RETURN_DATE, BROWSER, CICD = load_test_data_xlsx("testdata/testdata.xlsx")
 
 
 
@@ -54,8 +85,15 @@ def test_missing_destination_field():
         
         #NOTE: Select browser and execution type Headed/Headless for CI/CD 
         # browser = p.chromium.launch(headless=False)  # set to True to run in headed mode
-        browser = p.firefox.launch(headless=False)   # set to True to run in headed mode
+        # browser = p.firefox.launch(headless=False)   # set to True to run in headed mode
         # browser = p.chromium.launch(channel="msedge", headless=False)
+        if BROWSER == "Chrome":
+            browser = p.chromium.launch(headless=(CICD == "Yes"))
+        elif BROWSER == "Edge":
+            browser = p.chromium.launch(channel="msedge", headless=(CICD == "Yes"))
+        else:
+            browser = p.firefox.launch(headless=(CICD == "Yes"))
+
 
 
         # to help view with Chrome headless just in case. #NOTE: However Headless Chrome not allowed on Delta
