@@ -19,52 +19,13 @@ Data-driven from: testdata/testdata.csv
 Author: Sean Tabrizi
 Date: May 05, 2025
 """
-
-
+import pandas as pd
 import pytest
-import csv
+from utils.data_loader import load_test_data    #utility test data loader
 from playwright.sync_api import sync_playwright
 from pages.booking_page import BookingPage
 
-# Utility function to load a single row of test data from CSV
-# This allows the test to run dynamically using externalized data
-# def load_test_data_csv(filepath):
-#     with open(filepath, newline='') as csvfile:
-#         reader = csv.DictReader(csvfile)
-#         for row in reader:
-#             return row["url"], row["from_airport"], row["from_full_name"], row["depart_date"], row["return_date"]
-import pandas as pd
-
-def load_test_data_xlsx(filepath):
-    # Load the Excel file into a pandas DataFrame using openpyxl as the engine
-    df = pd.read_excel(filepath, engine="openpyxl")
-
-    # Extract the first row of test data (assuming only one test case per run)
-    row = df.iloc[0]
-
-    # Read and normalize the 'Browser' field: 
-    # Convert to string, trim whitespace, capitalize (e.g., "chrome" → "Chrome"), default to "Firefox" if blank or NaN
-    browser = str(row.get("Browser", "")).strip().capitalize() or "Firefox"
-
-    # Read and normalize the 'CICD' field:
-    # Convert to string, trim whitespace, capitalize (e.g., "yes" → "Yes"), default to "No" if blank or NaN
-    cicd = str(row.get("CICD", "")).strip().capitalize() or "No"
-
-    # Return all test data fields as a tuple
-    return (
-        row["url"],
-        row["from_airport"],
-        row["from_full_name"],
-        row["depart_date"],
-        row["return_date"],
-        browser,
-        cicd
-    )
-
-
-
-
-# Marking this test as a negative test case, focusing on invalid input validation
+# NOTE: Marking this test as a negative test case, focusing on invalid input validation
 @pytest.mark.negative
 def test_missing_destination_field():
     """
@@ -75,18 +36,13 @@ def test_missing_destination_field():
     """
 
     # Load test data values from CSV
-    # URL, FROM_AIRPORT, FROM_FULL_NAME, DEPART_DATE, RETURN_DATE = load_test_data_csv("testdata/testdata.csv")
-    URL, FROM_AIRPORT, FROM_FULL_NAME, DEPART_DATE, RETURN_DATE, BROWSER, CICD = load_test_data_xlsx("testdata/testdata.xlsx")
+    URL, FROM_AIRPORT, FROM_FULL_NAME, DEPART_DATE, RETURN_DATE, BROWSER, CICD = load_test_data("testdata/testdata.xlsx")
 
 
 
     # Start Playwright session with Chromium in headed mode for visual debugging
     with sync_playwright() as p:
         
-        #NOTE: Select browser and execution type Headed/Headless for CI/CD 
-        # browser = p.chromium.launch(headless=False)  # set to True to run in headed mode
-        # browser = p.firefox.launch(headless=False)   # set to True to run in headed mode
-        # browser = p.chromium.launch(channel="msedge", headless=False)
         if BROWSER == "Chrome":
             browser = p.chromium.launch(headless=(CICD == "Yes"))
         elif BROWSER == "Edge":
@@ -96,12 +52,10 @@ def test_missing_destination_field():
 
 
 
-        # to help view with Chrome headless just in case. #NOTE: However Headless Chrome not allowed on Delta
+        # NOTE: helps with Headless view size
+        # BUG: Headless Chrome/Edge not allowed on Delta
         context = browser.new_context(viewport={"width": 1280, "height": 1024})
         # context = browser.new_context()
-
-
-
 
         page = context.new_page()
 
